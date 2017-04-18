@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jms="http://www.springframework.org/schema/jms"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+          http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.2.xsd
+          http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+          http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd
+          http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.2.xsd
+          http://www.springframework.org/schema/jpa http://www.springframework.org/schema/jpa/spring-jpa-3.2.xsd
+          http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+">
+    
+    
+    <!-- Declaration Job Luncher -->
+        <bean id="jobLauncher" 
+          class="org.springframework.batch.core.launch.support.SimpleJobLauncher" 
+          p:jobRepository-ref="jobRepository" p:taskExecutor-ref="taskExecutor"/>
+    <bean id="taskExecutor" class="org.springframework.core.task.SimpleAsyncTaskExecutor"/>
+    <batch:job-repository id="jobRepository" 
+                          data-source="jpaDataSourceAdria" 
+                          isolation-level-for-create="DEFAULT" 
+                          transaction-manager="transactionManager"/>
+        
+    
+    
+    <!-- Déclaration du "Task Executor" -->
+    <bean id="asyncTaskExecutor" class="org.springframework.core.task.SimpleAsyncTaskExecutor"/>
+    <bean id="syncTaskExecutor" class="org.springframework.core.task.SyncTaskExecutor"/>
+    
+    
+    <!-- Déclaration du "Task Executor" -->
+    <bean id="abstractJdbcBatchItemWriter" 
+          class="org.springframework.batch.item.database.JdbcBatchItemWriter" abstract="true">
+        <property name="dataSource" ref="jpaDataSourceAdria"/>
+        <property name="itemSqlParameterSourceProvider">
+        <bean class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider"/>
+        </property>
+    </bean>
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+        <constructor-arg ref="jpaDataSourceAdria"/>
+    </bean>
+    <!-- **************************************************************************** -->
+    <!--                                                                              -->
+    <!-- JOB 1 :    -->
+    <!--                                                                              -->
+    <!-- **************************************************************************** -->
+   
+
+   <bean id="FluxTasklet" 
+         class="ma.adria.batch.tasklet.FluxTasklet" scope="step">
+       <property name="dataSource" ref="jpaDataSourceAdria"/>
+       <property name="CODE_ETAT" value="#{batchParamProp['CODE_ETAT']}"/>
+       <property name="CODE_LANGUE" value="#{batchParamProp['CODE_LANGUE']}"/> 
+       <property name="filePath" value="#{batchParamProp['filePath']}"/>
+       <property name="selectFlux" value="${ma.adria.select.flux}"/>
+       <!--<property name="insertFlux" value="${ma.adria.insert.flux}"/>-->
+   </bean>
+    
+     <!--DELCARATION DU JOB--> 
+    <batch:job id="FluxTaskletJob" job-repository="jobRepository">
+        <batch:step id="FluxTaskletStep" > 
+            <batch:tasklet ref="FluxTasklet" />
+        </batch:step>        
+    </batch:job>
+    
+</beans>
